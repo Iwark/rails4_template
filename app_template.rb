@@ -74,6 +74,9 @@ group :development, :test do
   gem 'awesome_print'
   # Rspec
   gem 'rspec-rails'
+  gem 'spring-commands-rspec'
+  gem 'guard-rspec'
+  gem 'rb-fsevent'
   # test fixture
   gem 'factory_girl_rails'
   # テスト環境のテーブルをきれいにする
