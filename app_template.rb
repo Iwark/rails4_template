@@ -86,9 +86,6 @@ group :development, :test do
 end
 group :test do
   gem 'shoulda-matchers'
-  # HTTP requests用のモックアップを作ってくれる
-  gem 'webmock'
-  gem 'vcr'
 end
 CODE
 
