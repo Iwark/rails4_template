@@ -179,7 +179,7 @@ run 'touch app/assets/stylesheets/application.css.scss'
 append_file 'app/assets/stylesheets/application.css.scss', %q(
   // First import cerulean variables
   @import "bootswatch/yeti/variables";
-  @import "bootstrap-custom.scss"
+  @import "bootstrap-custom.scss";
 
   *{
     // borderとpaddingをボックス内に含めるようにする
