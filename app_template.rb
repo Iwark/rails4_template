@@ -97,28 +97,28 @@ gsub_file 'config/secrets.yml', /<\%\=\sENV\["SECRET_KEY_BASE"\]\s\%>/, `bundle 
 
 # Database
 run 'rm -rf config/database.yml'
-run 'touch config/database.yml'
-append_file 'config/database.yml', %(
-  default: &default
-    adapter: mysql2
-    encoding: utf8
-    pool: 5
-    timeout: 5000
-    charset: utf8
-    collation: utf8_general_ci
-    username: root
+file 'config/database.yml', <<-CODE
+default: &default
+  adapter: mysql2
+  encoding: utf8
+  pool: 5
+  timeout: 5000
+  charset: utf8
+  collation: utf8_general_ci
+  username: root
 
-  development:
-    <<: *default
-    database: #{@app_name}_development
+development:
+  <<: *default
+  database: #{@app_name}_development
 
-  test:
-    <<: *default
-    database: #{@app_name}_test
+test:
+  <<: *default
+  database: #{@app_name}_test
 
-  production:
-    database: #{@app_name}_production
-)
+production:
+  <<: *default
+  database: #{@app_name}_production
+CODE
 run 'bundle exec rake db:create'
 
 # set config/application.rb
@@ -175,8 +175,7 @@ gsub_file 'app/assets/javascripts/application.js', /\/\/=\srequire\sturbolinks\n
 
 # Bootstrap
 run 'rm -f app/assets/stylesheets/application.css'
-run 'touch app/assets/stylesheets/application.css.scss'
-append_file 'app/assets/stylesheets/application.css.scss', %q(
+file 'app/assets/stylesheets/application.scss', <<-CODE
   // First import cerulean variables
   @import "bootswatch/yeti/variables";
   @import "bootstrap-custom.scss";
@@ -201,9 +200,8 @@ append_file 'app/assets/stylesheets/application.css.scss', %q(
 
   @import "bootswatch/yeti/bootswatch";
   @import "font-awesome";
-)
-run 'touch app/assets/stylesheets/bootstrap-custom.scss'
-append_file 'app/assets/stylesheets/bootstrap-custom.scss', %q(
+CODE
+file 'app/assets/stylesheets/bootstrap-custom.scss', <<-CODE
 // Core variables and mixins
 @import "bootstrap/variables";
 @import "bootstrap/mixins";
@@ -254,7 +252,7 @@ append_file 'app/assets/stylesheets/bootstrap-custom.scss', %q(
 // Utility classes
 // @import "bootstrap/utilities";
 // @import "bootstrap/responsive-utilities";
-)
+CODE
 
 # Simple Form
 generate 'simple_form:install --bootstrap'
@@ -263,8 +261,7 @@ generate 'simple_form:install --bootstrap'
 run 'bundle exec wheneverize .'
 
 # Capistrano
-run 'touch Capfile'
-append_file 'Capfile',%(
+file 'Capfile', <<-CODE
   require 'capistrano/setup'
   require 'capistrano/deploy'
   require 'capistrano/rbenv'
@@ -274,9 +271,8 @@ append_file 'Capfile',%(
   require 'capistrano3/unicorn'
   require "whenever/capistrano"
   Dir.glob('lib/capistrano/tasks/*.rake').each { |r| import r }
-)
-run 'touch config/deploy.rb'
-append_file 'config/deploy.rb', <<-CODE
+CODE
+file 'config/deploy.rb', <<-CODE
 set :application, #{@app_name}
 set :repo_url, 'git@github.com:Iwark/#{@app_name}.git'
 
@@ -322,8 +318,7 @@ namespace :deploy do
 end
 CODE
 run 'mkdir config/deploy'
-run 'touch config/deploy/production.rb'
-append_file 'config/deploy/production.rb', <<-CODE
+file 'config/deploy/production.rb', <<-CODE
 role :app, %w{#{@app_name}}
 role :web, %w{#{@app_name}}
 role :db,  %w{#{@app_name}}
@@ -340,28 +335,22 @@ set :default_env, {
 CODE
 
 # Setting Logic
-run 'touch config/application.yml'
-append_file 'config/application.yml', <<-CODE
+file 'config/application.yml', <<-CODE
 defaults: &defaults
-
 
 development:
   <<: *defaults
 
-
 test:
   <<: *defaults
-
 
 staging:
   <<: *defaults
 
-
 production:
   <<: *defaults
 CODE
-run 'touch config/initializers/0_settings.rb'
-append_file 'config/initializers/0_settings.rb', <<-CODE
+file 'config/initializers/0_settings.rb', <<-CODE
 class Settings < Settingslogic
   source "\#{Rails.root}/config/application.yml"
   namespace Rails.env
@@ -372,8 +361,7 @@ CODE
 generate 'kaminari:config'
 
 # Unicorn
-run 'touch config/unicorn.rb'
-append_file 'config/unicorn.rb', %q(
+file 'config/unicorn.rb', <<-CODE
   listen '/tmp/unicorn.sock', :backlog => 64
   pid "tmp/pids/unicorn.pid"
 
@@ -391,7 +379,7 @@ append_file 'config/unicorn.rb', %q(
   before_fork do |server, worker|
     defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
 
-    old_pid = "\#{ server.config[:pid] }.oldbin"
+    old_pid = "#{ server.config[:pid] }.oldbin"
     if File.exists?(old_pid) && server.pid != old_pid
       begin
         sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
@@ -400,15 +388,14 @@ append_file 'config/unicorn.rb', %q(
       end
     end
   end
-)
+CODE
 
 # Rspec
 generate 'rspec:install'
 run "echo '--color -f d' > .rspec"
 
 # Guard
-run 'touch Guardfile'
-append_file 'Guardfile', <<-EOS
+file 'Guardfile', <<-CODE
   guard :rspec, cmd: 'spring rspec' do
     watch(%r{^spec/.+_spec\.rb$})
     watch(%r{^lib/(.+)\.rb$})     { |m| "spec/lib/\#{m[1]}_spec.rb" }
@@ -430,7 +417,7 @@ append_file 'Guardfile', <<-EOS
     watch(%r{^spec/acceptance/(.+)\.feature$})
     watch(%r{^spec/acceptance/steps/(.+)_steps\.rb$})   { |m| Dir[File.join("**/\#{m[1]}.feature")][0] || 'spec/acceptance' }
   end
-EOS
+CODE
 
 # git
 git :init
