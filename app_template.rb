@@ -128,6 +128,7 @@ application  do
     config.time_zone = 'Tokyo'
     config.active_record.default_timezone = :local
     # 日本語化
+    I18n.available_locales = [:en, :ja]
     I18n.enforce_available_locales = true
     config.i18n.load_path += Dir[Rails.root.join('config', 'locales', '**', '*.{rb,yml}').to_s]
     config.i18n.default_locale = :ja
@@ -273,7 +274,7 @@ file 'Capfile', <<-CODE
   Dir.glob('lib/capistrano/tasks/*.rake').each { |r| import r }
 CODE
 file 'config/deploy.rb', <<-CODE
-set :application, #{@app_name}
+set :application, :#{@app_name}
 set :repo_url, 'git@github.com:Iwark/#{@app_name}.git'
 
 set :scm, :git
