@@ -1,13 +1,12 @@
 # アプリ名の取得
 @app_name = app_name
 
-# clean file
+# README.rdocの削除
 run 'rm README.rdoc'
 
 # .gitignore
 run 'gibo OSX Ruby Rails JetBrains SASS SublimeText > .gitignore' rescue nil
 gsub_file '.gitignore', /^config\/initializers\/secret_token.rb$/, ''
-gsub_file '.gitignore', /config\/secret.yml/, ''
 
 # Gemfile
 gsub_file 'Gemfile', /#.*?\n/, ''
@@ -15,73 +14,47 @@ gsub_file 'Gemfile', /\n+/, "\n"
 gsub_file 'Gemfile', /^gem\s\'sqlite3\'/, 'gem \'mysql2\''
 gsub_file 'Gemfile', /^gem\s\'turbolinks\'/, ''
 append_file 'Gemfile', <<-CODE
-# Bootstrap & Bootswatch & font-awesome
 gem 'bootstrap-sass'
-gem 'bootswatch-rails'
-gem 'font-awesome-rails'
 gem 'therubyracer', platforms: :ruby
 gem 'unicorn'
-# Slim
 gem 'slim-rails'
-# Assets log cleaner
 gem 'quiet_assets'
-# Form Builders
 gem 'simple_form'
-# HTML5 Validator
 gem 'html5_validators'
-# Action Args
 gem 'action_args'
-# PG/MySQL Log Formatter
 gem 'rails-flog'
-# Pagenation
 gem 'kaminari'
-# NewRelic
 gem 'newrelic_rpm'
-# HTML Parser
 gem 'nokogiri'
-# Hash extensions
-gem 'hashie'
-# Settings
 gem 'settingslogic'
-# Cron Manage
 gem 'whenever', require: false
-# Presenter Layer Helper
 gem 'active_decorator'
 group :development do
   gem 'html2slim'
-  # N+1問題の検出
   gem 'bullet'
-  # Rack Profiler
   # gem 'rack-mini-profiler'
-  # Deploy
   gem 'capistrano', '~> 3.2.1'
   gem 'capistrano-rails'
   gem 'capistrano-rbenv'
   gem 'capistrano-bundler'
   gem 'capistrano3-unicorn'
+  gem 'capistrano-rails-console'
 end
 group :development, :test do
   gem 'annotate'
-  # Pry & extensions
   gem 'pry-rails'
   gem 'pry-coolline'
   gem 'pry-byebug'
   gem 'rb-readline'
-  # PryでのSQLの結果を綺麗に表示
   gem 'hirb'
   gem 'hirb-unicode'
-  # pryの色付けをしてくれる
   gem 'awesome_print'
-  # Rspec
   gem 'rspec-rails'
   gem 'spring-commands-rspec'
   gem 'guard-rspec'
   gem 'rb-fsevent'
-  # test fixture
   gem 'factory_girl_rails'
-  # テスト環境のテーブルをきれいにする
   gem 'database_rewinder'
-  # Time Mock
   gem 'timecop'
 end
 group :test do
@@ -154,7 +127,6 @@ end
 
 # For Bullet (N+1 Problem)
 insert_into_file 'config/environments/development.rb',%(
-  # Bulletの設定
   config.after_initialize do
     Bullet.enable = true # Bulletプラグインを有効
     Bullet.alert = true # JavaScriptでの通知
@@ -164,21 +136,20 @@ insert_into_file 'config/environments/development.rb',%(
   end
 ), after: 'config.assets.debug = true'
 
-# set Japanese locale
+# Japanese locale
 run 'wget https://raw.github.com/svenfuchs/rails-i18n/master/rails/locale/ja.yml -P config/locales/'
 
 # erb to slim
 run 'bundle exec erb2slim -d app/views'
 gsub_file 'app/views/layouts/application.html.slim', /,\s\'data-turbolinks-track\'\s=>\strue/, ''
 
-# do not use turbolinks
+# turbolinksの削除
 gsub_file 'app/assets/javascripts/application.js', /\/\/=\srequire\sturbolinks\n/, ''
 
 # Bootstrap
 run 'rm -f app/assets/stylesheets/application.css'
 file 'app/assets/stylesheets/application.scss', <<-CODE
   // First import cerulean variables
-  @import "bootswatch/yeti/variables";
   @import "bootstrap-custom.scss";
 
   *{
@@ -196,11 +167,7 @@ file 'app/assets/stylesheets/application.scss', <<-CODE
   }
 
   body{
-    padding-top: 60px;
   }
-
-  @import "bootswatch/yeti/bootswatch";
-  @import "font-awesome";
 CODE
 file 'app/assets/stylesheets/bootstrap-custom.scss', <<-CODE
 // Core variables and mixins
@@ -271,6 +238,7 @@ file 'Capfile', <<-CODE
   require 'capistrano/rails/migrations'
   require 'capistrano3/unicorn'
   require "whenever/capistrano"
+  require 'capistrano/rails/console'
   Dir.glob('lib/capistrano/tasks/*.rake').each { |r| import r }
 CODE
 file 'config/deploy.rb', <<-CODE
