@@ -380,7 +380,7 @@ file 'config/unicorn.rb', <<-CODE
   before_fork do |server, worker|
     defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
 
-    old_pid = "#{ server.config[:pid] }.oldbin"
+    old_pid = "\#{ server.config[:pid] }.oldbin"
     if File.exists?(old_pid) && server.pid != old_pid
       begin
         sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
