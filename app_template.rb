@@ -65,6 +65,9 @@ CODE
 # install gems
 run 'bundle install --path vendor/bundle --jobs=4'
 
+# annotate gem
+run 'rails g annotate:install'
+
 # secret
 gsub_file 'config/secrets.yml', /<\%\=\sENV\["SECRET_KEY_BASE"\]\s\%>/, `bundle exec rake secret`
 
