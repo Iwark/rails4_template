@@ -112,7 +112,7 @@ application  do
       g.test_framework  :rspec, :fixture => true
       g.fixture_replacement :factory_girl, :dir => "spec/factories"
       g.view_specs false
-      g.controller_specs true
+      g.controller_specs false
       g.routing_specs false
       g.helper_specs false
       g.request_specs false
