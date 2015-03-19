@@ -9,38 +9,43 @@ run 'gibo OSX Ruby Rails JetBrains SASS SublimeText > .gitignore' rescue nil
 gsub_file '.gitignore', /^config\/initializers\/secret_token.rb$/, ''
 
 # Gemfile
-gsub_file 'Gemfile', /#.*?\n/, ''
-gsub_file 'Gemfile', /\n+/, "\n"
-gsub_file 'Gemfile', /^gem\s\'sqlite3\'/, 'gem \'mysql2\''
-gsub_file 'Gemfile', /^gem\s\'turbolinks\'/, ''
-append_file 'Gemfile', <<-CODE
-gem 'bootstrap-sass'
-gem 'therubyracer', platforms: :ruby
-gem 'unicorn'
+run 'rm -rf Gemfile'
+file 'Gemfile', <<-CODE
+source 'https://rubygems.org'
+gem 'rails', '4.2.0'
+gem 'sqlite3'
+
+# Slim Template
 gem 'slim-rails'
+gem 'sass-rails', '~> 5.0'
+gem 'bootstrap-sass'
+gem 'coffee-rails', '~> 4.1.0'
+gem 'jquery-rails'
+gem 'uglifier', '>= 1.3.0'
+
+gem 'jbuilder', '~> 2.0'
+gem 'sdoc', '~> 0.4.0', group: :doc
+gem 'therubyracer', platforms: :ruby
 gem 'quiet_assets'
+
 gem 'simple_form'
-gem 'html5_validators'
 gem 'action_args'
+gem 'active_decorator'
+gem 'html5_validators'
 gem 'rails-flog'
-gem 'kaminari'
-gem 'newrelic_rpm'
-gem 'nokogiri'
 gem 'settingslogic'
 gem 'whenever', require: false
-gem 'active_decorator'
-group :development do
-  gem 'html2slim'
-  gem 'bullet'
-  # gem 'rack-mini-profiler'
-  gem 'capistrano', '~> 3.2.1'
-  gem 'capistrano-rails'
-  gem 'capistrano-rbenv'
-  gem 'capistrano-bundler'
-  gem 'capistrano3-unicorn'
-  gem 'capistrano-rails-console'
-end
+
+gem 'unicorn'
+
+gem 'newrelic_rpm'
+gem 'kaminari'
+gem 'nokogiri'
+
 group :development, :test do
+  gem 'byebug'
+  gem 'web-console', '~> 2.0'
+  gem 'spring'
   gem 'annotate'
   gem 'pry-rails'
   gem 'pry-coolline'
@@ -57,23 +62,30 @@ group :development, :test do
   gem 'database_rewinder'
   gem 'timecop'
 end
+
+group :development do
+  gem 'html2slim'
+  gem 'bullet'
+  # gem 'rack-mini-profiler'
+  gem 'capistrano', '~> 3.2.1'
+  gem 'capistrano-rails'
+  gem 'capistrano-rbenv'
+  gem 'capistrano-bundler'
+  gem 'capistrano3-unicorn'
+  gem 'capistrano-rails-console'
+end
+
 group :test do
   gem 'shoulda-matchers'
 end
+
 CODE
 
-# install gems
-run 'bundle install --path vendor/bundle --jobs=4'
-
-# annotate gem
-run 'rails g annotate:install'
-
-# secret
-gsub_file 'config/secrets.yml', /<\%\=\sENV\["SECRET_KEY_BASE"\]\s\%>/, `bundle exec rake secret`
-
 # Database
-run 'rm -rf config/database.yml'
-file 'config/database.yml', <<-CODE
+if yes?('use MySQL?(y/n)')
+  gsub_file 'Gemfile', /^gem\s\'sqlite3\'/, 'gem \'mysql2\''
+  run 'rm -rf config/database.yml'
+  file 'config/database.yml', <<-CODE
 default: &default
   adapter: mysql2
   encoding: utf8
@@ -95,7 +107,19 @@ production:
   <<: *default
   database: #{@app_name}_production
 CODE
+end
+
+# install gems
+run 'bundle install --path vendor/bundle --jobs=4'
+
+# create db
 run 'bundle exec rake db:create'
+
+# annotate gem
+run 'rails g annotate:install'
+
+# secret
+gsub_file 'config/secrets.yml', /<\%\=\sENV\["SECRET_KEY_BASE"\]\s\%>/, `bundle exec rake secret`
 
 # set config/application.rb
 application  do
