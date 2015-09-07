@@ -12,7 +12,7 @@ gsub_file '.gitignore', /^config\/initializers\/secret_token.rb$/, ''
 run 'rm -rf Gemfile'
 file 'Gemfile', <<-CODE
 source 'https://rubygems.org'
-gem 'rails', '4.2.0'
+gem 'rails', '4.2.1'
 gem 'sqlite3'
 
 # Slim Template
@@ -197,6 +197,9 @@ file 'app/assets/stylesheets/application.scss', <<-CODE
   }
 CODE
 file 'app/assets/stylesheets/bootstrap-custom.scss', <<-CODE
+
+@import "bootstrap-sprockets";
+
 // Core variables and mixins
 @import "bootstrap/variables";
 @import "bootstrap/mixins";
