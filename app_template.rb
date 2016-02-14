@@ -12,7 +12,7 @@ gsub_file '.gitignore', /^config\/initializers\/secret_token.rb$/, ''
 run 'rm -rf Gemfile'
 file 'Gemfile', <<-CODE
 source 'https://rubygems.org'
-gem 'rails', '4.2.1'
+gem 'rails', '4.2.5'
 gem 'sqlite3'
 
 # Slim Template
@@ -91,9 +91,10 @@ default: &default
   encoding: utf8
   pool: 5
   timeout: 5000
-  charset: utf8
-  collation: utf8_general_ci
   username: root
+  charset: utf8mb4
+  encoding: utf8mb4
+  collation: utf8mb4_general_ci
 
 development:
   <<: *default
@@ -106,6 +107,22 @@ test:
 production:
   <<: *default
   database: #{@app_name}_production
+CODE
+
+  file 'config/initializers/ar_innodb_row_format.rb', <<-CODE
+ActiveSupport.on_load :active_record do
+  module ActiveRecord::ConnectionAdapters
+    class AbstractMysqlAdapter
+      def create_table_with_innodb_row_format(table_name, options = {})
+        table_options = options.merge(:options => 'ENGINE=InnoDB ROW_FORMAT=DYNAMIC')
+        create_table_without_innodb_row_format(table_name, table_options) do |td|
+          yield td if block_given?
+        end
+      end
+      alias_method_chain :create_table, :innodb_row_format
+    end
+  end
+end
 CODE
 end
 
@@ -176,28 +193,27 @@ gsub_file 'app/assets/javascripts/application.js', /\/\/=\srequire\sturbolinks\n
 # Bootstrap
 run 'rm -f app/assets/stylesheets/application.css'
 file 'app/assets/stylesheets/application.scss', <<-CODE
-  // First import cerulean variables
-  @import "bootstrap-custom.scss";
+// First import cerulean variables
+@import "bootstrap-custom.scss";
 
-  *{
-    // borderとpaddingをボックス内に含めるようにする
-    box-sizing: border-box;
-    // 長押しポップアップメニューの非表示
-    -webkit-touch-callout:none;
-  }
+*{
+  // borderとpaddingをボックス内に含めるようにする
+  box-sizing: border-box;
+  // 長押しポップアップメニューの非表示
+  -webkit-touch-callout:none;
+}
 
-  html, body{
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
+html, body{
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
-  body{
-  }
+body{
+}
 CODE
 file 'app/assets/stylesheets/bootstrap-custom.scss', <<-CODE
-
 @import "bootstrap-sprockets";
 
 // Core variables and mixins
@@ -271,6 +287,7 @@ file 'Capfile', <<-CODE
   require 'capistrano/rails/console'
   Dir.glob('lib/capistrano/tasks/*.rake').each { |r| import r }
 CODE
+
 file 'config/deploy.rb', <<-CODE
 set :application, :#{@app_name}
 set :repo_url, 'git@github.com:Iwark/#{@app_name}.git'
@@ -316,6 +333,7 @@ namespace :deploy do
 
 end
 CODE
+
 run 'mkdir config/deploy'
 file 'config/deploy/production.rb', <<-CODE
 role :app, %w{#{@app_name}}
@@ -349,6 +367,7 @@ staging:
 production:
   <<: *defaults
 CODE
+
 file 'config/initializers/0_settings.rb', <<-CODE
 class Settings < Settingslogic
   source "\#{Rails.root}/config/application.yml"
@@ -361,32 +380,32 @@ generate 'kaminari:config'
 
 # Unicorn
 file 'config/unicorn.rb', <<-CODE
-  listen '/tmp/unicorn.sock', :backlog => 64
-  pid "tmp/pids/unicorn.pid"
+listen '/tmp/unicorn.sock', :backlog => 64
+pid "tmp/pids/unicorn.pid"
 
-  stderr_path File.expand_path('unicorn.log', File.dirname(__FILE__) + '/../log')
-  stdout_path File.expand_path('unicorn.log', File.dirname(__FILE__) + '/../log')
+stderr_path File.expand_path('unicorn.log', File.dirname(__FILE__) + '/../log')
+stdout_path File.expand_path('unicorn.log', File.dirname(__FILE__) + '/../log')
 
-  worker_processes 2
+worker_processes 4
 
-  before_exec do |server|
-    ENV['BUNDLE_GEMFILE'] = File.expand_path('Gemfile', ENV['RAILS_ROOT'])
-  end
+before_exec do |server|
+  ENV['BUNDLE_GEMFILE'] = File.expand_path('Gemfile', ENV['RAILS_ROOT'])
+end
 
-  preload_app true
+preload_app true
 
-  before_fork do |server, worker|
-    defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
+before_fork do |server, worker|
+  defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!
 
-    old_pid = "\#{ server.config[:pid] }.oldbin"
-    if File.exists?(old_pid) && server.pid != old_pid
-      begin
-        sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
-        Process.kill sig, File.read(old_pid).to_i
-      rescue Errno::ENOENT, Errno::ESRCH
-      end
+  old_pid = "\#{ server.config[:pid] }.oldbin"
+  if File.exists?(old_pid) && server.pid != old_pid
+    begin
+      sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
+      Process.kill sig, File.read(old_pid).to_i
+    rescue Errno::ENOENT, Errno::ESRCH
     end
   end
+end
 CODE
 
 # Rspec
@@ -395,30 +414,30 @@ run "echo '--color -f d' > .rspec"
 
 # Guard
 file 'Guardfile', <<-CODE
-  guard :rspec, cmd: 'spring rspec' do
-    watch(%r{^spec/.+_spec\.rb$})
-    watch(%r{^lib/(.+)\.rb$})     { |m| "spec/lib/\#{m[1]}_spec.rb" }
-    watch('spec/spec_helper.rb')  { "spec" }
+guard :rspec, cmd: 'spring rspec' do
+  watch(%r{^spec/.+_spec\.rb$})
+  watch(%r{^lib/(.+)\.rb$})     { |m| "spec/lib/\#{m[1]}_spec.rb" }
+  watch('spec/spec_helper.rb')  { "spec" }
 
-    # Rails example
-    watch(%r{^app/(.+)\.rb$})                           { |m| "spec/\#{m[1]}_spec.rb" }
-    watch(%r{^app/(.*)(\.erb|\.haml|\.slim)$})          { |m| "spec/\#{m[1]}\#{m[2]}_spec.rb" }
-    watch(%r{^app/controllers/(.+)_(controller)\.rb$})  { |m| ["spec/routing/\#{m[1]}_routing_spec.rb", "spec/\#{m[2]}s/\#{m[1]}_\#{m[2]}_spec.rb", "spec/acceptance/\#{m[1]}_spec.rb"] }
-    watch(%r{^spec/support/(.+)\.rb$})                  { "spec" }
-    watch('config/routes.rb')                           { "spec/routing" }
-    watch('app/controllers/application_controller.rb')  { "spec/controllers" }
-    watch('spec/rails_helper.rb')                       { "spec" }
+  # Rails example
+  watch(%r{^app/(.+)\.rb$})                           { |m| "spec/\#{m[1]}_spec.rb" }
+  watch(%r{^app/(.*)(\.erb|\.haml|\.slim)$})          { |m| "spec/\#{m[1]}\#{m[2]}_spec.rb" }
+  watch(%r{^app/controllers/(.+)_(controller)\.rb$})  { |m| ["spec/routing/\#{m[1]}_routing_spec.rb", "spec/\#{m[2]}s/\#{m[1]}_\#{m[2]}_spec.rb", "spec/acceptance/\#{m[1]}_spec.rb"] }
+  watch(%r{^spec/support/(.+)\.rb$})                  { "spec" }
+  watch('config/routes.rb')                           { "spec/routing" }
+  watch('app/controllers/application_controller.rb')  { "spec/controllers" }
+  watch('spec/rails_helper.rb')                       { "spec" }
 
-    # Capybara features specs
-    watch(%r{^app/views/(.+)/.*\.(erb|haml|slim)$})     { |m| "spec/features/\#{m[1]}_spec.rb" }
+  # Capybara features specs
+  watch(%r{^app/views/(.+)/.*\.(erb|haml|slim)$})     { |m| "spec/features/\#{m[1]}_spec.rb" }
 
-    # Turnip features and steps
-    watch(%r{^spec/acceptance/(.+)\.feature$})
-    watch(%r{^spec/acceptance/steps/(.+)_steps\.rb$})   { |m| Dir[File.join("**/\#{m[1]}.feature")][0] || 'spec/acceptance' }
-  end
+  # Turnip features and steps
+  watch(%r{^spec/acceptance/(.+)\.feature$})
+  watch(%r{^spec/acceptance/steps/(.+)_steps\.rb$})   { |m| Dir[File.join("**/\#{m[1]}.feature")][0] || 'spec/acceptance' }
+end
 CODE
 
 # git
-git :init
-git add: '.'
-git commit: "-a -m 'first commit'"
+# git :init
+# git add: '.'
+# git commit: "-a -m 'first commit'"
